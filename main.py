@@ -8,7 +8,7 @@ from math import comb
 from pprint import pprint
 
 WEAPON_NAME = "Kompressa Prime"
-LOCKED_MOD_NAMES = [] #["Anemic Agility", "Scorch", "Barrel Diffusion", "Lethal Torrent"]
+LOCKED_MOD_NAMES = ["Anemic Agility", "Scorch", "Barrel Diffusion", "Lethal Torrent"]
 ONLY_FULL_8_MODS = True # TODO: change to minimum mods
 MAX_BURST_SECONDS = 12
 PROGRESS_DISPLAY_MOD = 10000
@@ -128,7 +128,7 @@ def run_simulation(weapon_dict, results_dict, weapon, mods, utility_mod):
         return
 
     # Complete simulation and add results
-    results, peak_procs_per_sec = get_status_proc_data_over_time(modded_weapon_values)
+    results = get_status_proc_data_over_time(modded_weapon_values)
 
     # Check hash for grouping 
     results_hash = hash_dict(results)
@@ -137,8 +137,7 @@ def run_simulation(weapon_dict, results_dict, weapon, mods, utility_mod):
     else:
         results_dict[results_hash] = {
             "Mod Sets": [mod_names],
-            "Results": results,
-            "Peak Procs/Sec": peak_procs_per_sec
+            "Results": results
         }
 
     # Store weapon set to save simulations
@@ -155,14 +154,6 @@ def split_locked_mods(mods):
             free.append(mod)
 
     return locked, free
-
-def make_group_key(results, peak_procs):
-    payload = {
-        "Results": results,
-        "Peak Procs/Sec": peak_procs
-    }
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.blake2b(canonical.encode(), digest_size=16).digest()
 
 def get_modded_weapon_values(weapon, mods, reloaded):
     mod_sum_values = sum_relevant_mod_stats(mods, reloaded)
@@ -191,7 +182,6 @@ def get_status_proc_data_over_time(modded_weapon_values):
     # Simulate fire
     sim_time = 0
     current_procs = 0
-    peak_procs_per_sec = 0
     sim_results = []
     reloaded = False
     sim_mag = weapon_values()["Magazine Capacity"]
@@ -203,10 +193,6 @@ def get_status_proc_data_over_time(modded_weapon_values):
             current_procs += weapon_values()["Multishot"] * weapon_values()["Status Chance"]
             sim_time += firing_time
             sim_mag -= 1
-
-            procs_per_sec = current_procs/sim_time
-            if procs_per_sec > peak_procs_per_sec:
-                peak_procs_per_sec = procs_per_sec
         else:
             reloaded = True
             result["action"] = "Reload"
@@ -215,7 +201,7 @@ def get_status_proc_data_over_time(modded_weapon_values):
     
         result["procs"] = current_procs
         sim_results.append(result)
-    return sim_results, peak_procs_per_sec
+    return sim_results
 
 def sum_relevant_mod_stats(mods, reloaded):
     mod_sum_values = {}
