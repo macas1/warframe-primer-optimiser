@@ -10,6 +10,11 @@ def main():
     ).run()
     pprint(len(sim_results))
 
+    # TODO: For each result Score it
+    #   Average Procs/Sec calculated on final entry
+    #   Total Procs in different burst periods
+    # And then pick the top X results from BOTH sets and add them together
+
 
 if __name__ == "__main__":
     main()
