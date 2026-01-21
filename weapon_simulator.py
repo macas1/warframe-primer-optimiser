@@ -1,13 +1,11 @@
+from data_handler import DataHandler
+from itertools import combinations, chain
+from math import comb
 import requests_cache
-import requests
 import re
 import json
 import hashlib
-from itertools import combinations, chain
-from math import comb
 
-MODS_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/refs/heads/master/data/json/Mods.json"
-SECONDARIES_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/refs/heads/master/data/json/Secondary.json"
 RELEVANT_MOD_STATS = ["Fire rate", "Multishot", "Status Chance", "Reload Speed", "Magazine Capacity"]
 RELEVANT_WEAPON_STATS = ["fireRate", "multishot", "status_chance", "reloadTime", "magazineSize"]
 RELEVANT_CONDITIONS = ["On Reload", "On Ability Cast"]
@@ -24,6 +22,7 @@ class WeaponSimulator:
     minimum_simulated_mods = None
     progress_display_mod = None
     locked_mod_names = None
+    raw_mod_data = None
 
     def __init__(
             self, 
@@ -44,8 +43,8 @@ class WeaponSimulator:
     def run(self):
         # Collect data
         self.setup_cache()
-        raw_mod_data = self.get_json_cached(MODS_URL)
-        raw_weapon_data = self.get_json_cached(SECONDARIES_URL)
+        raw_mod_data = DataHandler.get_mods_data()
+        raw_weapon_data = DataHandler.get_weapon_data()
 
         # Run simulation
         weapon = self.get_weapon(raw_weapon_data, self.weapon_name)
@@ -350,8 +349,3 @@ class WeaponSimulator:
             backend="sqlite",
             expire_after=CACHE_LIFESPAN
         )
-
-    def get_json_cached(self, url: str):
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
