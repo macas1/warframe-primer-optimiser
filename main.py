@@ -10,6 +10,7 @@ from pprint import pprint
 WEAPON_NAME = "Kompressa Prime"
 LOCKED_MOD_NAMES = [] #["Anemic Agility", "Scorch", "Barrel Diffusion", "Lethal Torrent"]
 ONLY_FULL_8_MODS = True # TODO: change to minimum mods
+MAX_BURST_SECONDS = 12
 PROGRESS_DISPLAY_MOD = 10000
 
 MODS_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/refs/heads/master/data/json/Mods.json"
@@ -21,7 +22,6 @@ VARIANTS_TO_STRIP = ["GALVANIZED", "AMALGAM", "FLAWED"]
 WEAPON_ATTACK = 0
 WEAPON_MOD_SLOTS = 8
 WEAPON_EXILUS_SLOTS = 1
-MAX_BURST_SECONDS = 6
 LOCKED_MOD_NAMES_LOWER = {name.lower() for name in LOCKED_MOD_NAMES}
 
 
@@ -33,7 +33,7 @@ def main():
     weapon = get_weapon(raw_weapon_data, WEAPON_NAME)
     mod_data, mod_data_exilus = get_relevant_mods(raw_mod_data, weapon)
     sim_results = run_all_simulations(weapon, mod_data, mod_data_exilus)
-    print(len(mod_data), len(mod_data_exilus), len(sim_results))
+    pprint(len(sim_results))
 
     # TODO: Only store mod unique names in results
     # TODO: Filter Sim Results the get the best few?
@@ -118,10 +118,13 @@ def run_simulation(weapon_dict, results_dict, weapon, mods, utility_mod):
         "reloaded": get_modded_weapon_values(weapon, mods, True)
     }
 
+    # Get mod names to use from this point onward
+    mod_names = [mod["uniqueName"] for mod in mods]
+
     # Check if duplicate weapon stats and skip simulation if we can
     weapon_hash = hash_dict(modded_weapon_values)
     if weapon_hash in weapon_dict:
-        results_dict[weapon_dict[weapon_hash]]["Mod Sets"].append(mods)
+        results_dict[weapon_dict[weapon_hash]]["Mod Sets"].append(mod_names)
         return
 
     # Complete simulation and add results
@@ -130,10 +133,10 @@ def run_simulation(weapon_dict, results_dict, weapon, mods, utility_mod):
     # Check hash for grouping 
     results_hash = hash_dict(results)
     if results_hash in results_dict:
-        results_dict[results_hash]["Mod Sets"].append(mods)
+        results_dict[results_hash]["Mod Sets"].append(mod_names)
     else:
         results_dict[results_hash] = {
-            "Mod Sets": [mods],
+            "Mod Sets": [mod_names],
             "Results": results,
             "Peak Procs/Sec": peak_procs_per_sec
         }
@@ -191,9 +194,9 @@ def get_status_proc_data_over_time(modded_weapon_values):
     peak_procs_per_sec = 0
     sim_results = []
     reloaded = False
+    sim_mag = weapon_values()["Magazine Capacity"]
     while sim_time <= MAX_BURST_SECONDS:
         firing_time = 1 / weapon_values()["Fire Rate"]
-        sim_mag = weapon_values()["Magazine Capacity"]
         result = {"time": sim_time}
         if sim_mag > 0:
             result["action"] = "Fire"
