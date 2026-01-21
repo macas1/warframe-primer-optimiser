@@ -81,7 +81,8 @@ def run_all_simulations(weapon, mod_data, mod_data_exilus):
     ) / PROGRESS_DISPLAY_MOD
 
     count = 0
-    results = {}  # hash -> grouped entry
+    weapon_data_dict = {} # modded weapon stats hash -> results hash
+    results_dict = {}  # results hash -> grouped data
 
     for regular_mods in regular_combos:
         # Always include locked mods
@@ -95,51 +96,54 @@ def run_all_simulations(weapon, mod_data, mod_data_exilus):
             print(f"Simulation: {int(count/PROGRESS_DISPLAY_MOD)}/{int(display_total)} (*{PROGRESS_DISPLAY_MOD})")
 
         for exilus_mod in exilus_options:
-            sim = run_simulation(weapon, full_mods, exilus_mod)
-
-            results_hash = sim["Hash"]
-
-            if results_hash not in results:
-                results[results_hash] = {
-                    "Mod_sets": [],
-                    "Results": sim["Results"],
-                    "Peak Procs/Sec": sim["Peak Procs/Sec"],
-                }
-
-            results[results_hash]["Mod_sets"].append(sim["Mods"])
+            run_simulation(weapon_data_dict, results_dict, weapon, full_mods, exilus_mod)
 
         count += 1
 
     print("Simulations Complete")
-    return results
+    return results_dict
 
-def run_simulation(weapon, mods, utility_mod):
-    if utility_mod:
-        mods = mods + [utility_mod]  # avoid mutating caller list
-
-    results, peak_procs_per_sec = get_status_proc_data_over_time(weapon, mods)
-
-    # TODO: This has could be determined by the modded_weapon_data and if it exist, we could skip the whole simulation
-    # Build deterministic hash to group duplicate results
-    hash = {
-        "Results": results,
-        "Peak Procs/Sec": peak_procs_per_sec,
-    }
+def hash_dict(data):
     # Deterministic serialization
     hash_bytes = json.dumps(
-        hash,
+        data,
         sort_keys=True,
         separators=(",", ":")
     ).encode("utf-8")
+    return hashlib.blake2b(hash_bytes, digest_size=16).hexdigest() # blake2b is faster than sha256 and perfect for this use case
 
-    result_hash = hashlib.blake2b(hash_bytes, digest_size=16).hexdigest() # blake2b is faster than sha256 and perfect for this use case
+def run_simulation(weapon_dict, results_dict, weapon, mods, utility_mod):
+    if utility_mod:
+        mods = mods + [utility_mod]  # avoid mutating caller list
 
-    return {
-        "Hash": result_hash,
-        "Mods": mods,
-        "Results": results,
-        "Peak Procs/Sec": peak_procs_per_sec
+    # Get modded weapon values
+    modded_weapon_values = {
+        "base": get_modded_weapon_values(weapon, mods, False),
+        "reloaded": get_modded_weapon_values(weapon, mods, True)
     }
+
+    # Check if duplicate weapon stats and skip simulation if we can
+    weapon_hash = hash_dict(modded_weapon_values)
+    if weapon_hash in weapon_dict:
+        results_dict[weapon_dict[weapon_hash]]["Mod Sets"].append(mods)
+        return
+
+    # Complete simulation and add results
+    results, peak_procs_per_sec = get_status_proc_data_over_time(modded_weapon_values)
+
+    # Check hash for grouping 
+    results_hash = hash_dict(results)
+    if results_hash in results_dict:
+        results_dict[results_hash]["Mod Sets"].append(mods)
+    else:
+        results_dict[results_hash] = {
+            "Mod Sets": [mods],
+            "Results": results,
+            "Peak Procs/Sec": peak_procs_per_sec
+        }
+
+    # Store weapon set to save simulations
+    weapon_dict[weapon_hash] = results_hash
 
 def split_locked_mods(mods):
     locked = []
@@ -161,8 +165,6 @@ def make_group_key(results, peak_procs):
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.blake2b(canonical.encode(), digest_size=16).digest()
-
-
 
 def get_mod_base_name(mod):
     lower_name = mod["name"].lower()
@@ -202,15 +204,11 @@ def get_modded_weapon_values(weapon, mods, reloaded):
             modded_weapon_values[status] += mod_sum_values[status]["total"]
     return modded_weapon_values
 
-def get_status_proc_data_over_time(weapon, mods):
-    # Get modded weapon values
-    modded_weapon_values = get_modded_weapon_values(weapon, mods, False)
-    modded_weapon_values_r = get_modded_weapon_values(weapon, mods, True)
-
+def get_status_proc_data_over_time(modded_weapon_values):
     def weapon_values():
         if reloaded: 
-            return modded_weapon_values_r
-        return modded_weapon_values
+            return modded_weapon_values["reloaded"]
+        return modded_weapon_values["base"]
 
     # Simulate fire
     sim_time = 0
