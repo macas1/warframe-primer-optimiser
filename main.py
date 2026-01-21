@@ -8,24 +8,23 @@ from math import comb
 from pprint import pprint
 
 WEAPON_NAME = "Kompressa Prime"
-LOCKED_MOD_BASE_NAMES = ["Anemic Agility", "Scorch", "Barrel Diffusion", "Lethal Torrent"]
+LOCKED_MOD_NAMES = [] #["Anemic Agility", "Scorch", "Barrel Diffusion", "Lethal Torrent"]
+ONLY_FULL_8_MODS = True # TODO: change to minimum mods
+PROGRESS_DISPLAY_MOD = 10000
 
 MODS_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/refs/heads/master/data/json/Mods.json"
 SECONDARIES_URL = "https://raw.githubusercontent.com/WFCD/warframe-items/refs/heads/master/data/json/Secondary.json"
-WEAPON_ATTACK = 0
 RELEVANT_MOD_STATS = ["Fire rate", "Multishot", "Status Chance", "Reload Speed", "Magazine Capacity"]
 RELEVANT_WEAPON_STATS = ["fireRate", "multishot", "status_chance", "reloadTime", "magazineSize"]
 RELEVANT_CONDITIONS = ["On Reload", "On Ability Cast"]
+VARIANTS_TO_STRIP = ["GALVANIZED", "AMALGAM", "FLAWED"]
+WEAPON_ATTACK = 0
 WEAPON_MOD_SLOTS = 8
 WEAPON_EXILUS_SLOTS = 1
 MAX_BURST_SECONDS = 6
-ONLY_FULL_8_MODS = True
-IGNORE_VARIANTS = True
-VARIANT_PRIORITY = ["PRIMED", "", "GALVANIZED", "AMALGAM", "FLAWED"]
-PROGRESS_DISPLAY_MOD = 1
+LOCKED_MOD_NAMES_LOWER = {name.lower() for name in LOCKED_MOD_NAMES}
 
 
-LOCKED_BASE_SET = {name.lower() for name in LOCKED_MOD_BASE_NAMES}
 def main():
     # Collect data
     setup_cache()
@@ -33,14 +32,11 @@ def main():
     raw_weapon_data = get_json_cached(SECONDARIES_URL)
     weapon = get_weapon(raw_weapon_data, WEAPON_NAME)
     mod_data, mod_data_exilus = get_relevant_mods(raw_mod_data, weapon)
-    pprint(mod_data)
     sim_results = run_all_simulations(weapon, mod_data, mod_data_exilus)
-    print(len(sim_results))
-    pprint(sim_results)
+    print(len(mod_data), len(mod_data_exilus), len(sim_results))
 
-    # TODO: Group results that are exactly the same
-
-    # TODO: Filter Sim Results the get teh best few?
+    # TODO: Only store mod unique names in results
+    # TODO: Filter Sim Results the get the best few?
     # Average status effects per second for whole duration
     # Peak status effect / second for any duration
     
@@ -150,8 +146,7 @@ def split_locked_mods(mods):
     free = []
 
     for mod in mods:
-        base = get_mod_base_name(mod).strip().lower()
-        if base in LOCKED_BASE_SET:
+        if mod["name"].lower() in LOCKED_MOD_NAMES_LOWER:
             locked.append(mod)
         else:
             free.append(mod)
@@ -165,26 +160,6 @@ def make_group_key(results, peak_procs):
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.blake2b(canonical.encode(), digest_size=16).digest()
-
-def get_mod_base_name(mod):
-    lower_name = mod["name"].lower()
-    for prefix in VARIANT_PRIORITY:
-        if lower_name.startswith(prefix.lower()):
-            return mod["name"][len(prefix):]
-    return mod["name"]
-
-def remove_mod_variant_duplicates(mods):
-    chosen = {}
-
-    for mod in mods:
-        base = get_mod_base_name(mod)
-        priority = get_variant_priority(mod)
-
-        if base not in chosen or priority < chosen[base][0]:
-            chosen[base] = (priority, mod)
-
-    result = [entry[1] for entry in chosen.values()]
-    return result
 
 def get_modded_weapon_values(weapon, mods, reloaded):
     mod_sum_values = sum_relevant_mod_stats(mods, reloaded)
@@ -281,7 +256,19 @@ def get_relevant_mods(mods, weapon):
         # Ignore mods
         if not is_player_facing_mod(mod): continue
         if not "compatName" in mod or weapon["type"] != mod["compatName"]: continue
-        
+        if any(mod["name"].lower().startswith(variant.lower()) for variant in VARIANTS_TO_STRIP): continue
+        if any(variant.lower() in mod["wikiaUrl"].lower() for variant in VARIANTS_TO_STRIP): continue
+
+        # Skip base mod if a Primed variant exists
+        if not mod.get("isPrime"): 
+            skip_mod = False
+            for mod2 in mods:
+                if mod2.get("isPrime") and mod2["name"] == f"Primed {mod["name"]}":
+                    skip_mod = True
+                    break
+            if skip_mod:
+                continue 
+
         # Get relevant data in new structure
         new_mod = {}
 
@@ -304,10 +291,6 @@ def get_relevant_mods(mods, weapon):
             results_utility.append(new_mod)
         else:
             results.append(new_mod)
-
-    if IGNORE_VARIANTS:
-        results = remove_mod_variant_duplicates(results)
-        results_utility = remove_mod_variant_duplicates(results_utility)
 
     return results, results_utility
 
