@@ -21,7 +21,7 @@ CACHE_LIFESPAN = 60*60*24*1  # 1 days
 class WeaponSimulator:
     weapon_name = None
     max_burst_seconds = None
-    only_full_8_mods = None
+    minimum_simulated_mods = None
     progress_display_mod = None
     locked_mod_names = None
 
@@ -29,14 +29,14 @@ class WeaponSimulator:
             self, 
             weapon_name, 
             max_burst_seconds = 12,
-            only_full_8_mods = True, # TODO: change to minimum mods
+            minimum_simulated_mods = 8,
             progress_display_mod = 1,
             locked_mod_names = []
 
     ):
         self.weapon_name = weapon_name
         self.max_burst_seconds = max_burst_seconds
-        self.only_full_8_mods = only_full_8_mods
+        self.minimum_simulated_mods = minimum_simulated_mods
         self.progress_display_mod = progress_display_mod
         self.locked_mod_names = {name.lower() for name in locked_mod_names} 
 
@@ -54,11 +54,6 @@ class WeaponSimulator:
         return sim_results
         
     def run_all_simulations(self, weapon, mod_data, mod_data_exilus):
-        """
-        Runs simulations for all possible combinations of mods:
-        - Up to 8 regular mods (or only 8 if ONLY_FULL_8_MODS=True)
-        - Up to 1 Exilus/utility mod
-        """
         exilus_options = [None] + mod_data_exilus
 
         # split locked vs free mods
@@ -70,14 +65,9 @@ class WeaponSimulator:
 
         remaining_slots = 8 - locked_count
 
-        # Determine range of combination sizes
-        combo_range = (
-            [remaining_slots]
-            if self.only_full_8_mods
-            else range(0, remaining_slots + 1)
-        )
-
         # Generate all regular mod combinations for the chosen range
+        min_mods = max(0, min(self.minimum_simulated_mods, remaining_slots))
+        combo_range = range(min_mods, remaining_slots + 1)
         regular_combos = chain.from_iterable(
             combinations(free_mods, r) for r in combo_range
         )
