@@ -7,9 +7,6 @@ import heapq
 
 MAX_RESULTS = 50
 
-# TODO: Show mod names on graph (NO! Too many. Use on click and tkinter?)
-# TODO: Make all lines go flat to the end of the graph
-
 def main():
     # Do simulations ---------------------------------
     sim_results, sim_mods = WeaponSimulator(
@@ -26,11 +23,12 @@ def main():
         max_results=MAX_RESULTS
     )
 
-    selected_ids = [result_id for item in score_items for _, result_id in item["heap"]]
+    selected_ids = {result_id for item in score_items for _, result_id in item["heap"]}
     selected_results = [sim_results[result_id] for result_id in selected_ids]
 
     # Graph Simulations --------------------------------
-    SimResultsGrapher.graph(
+    grapher = SimResultsGrapher()
+    grapher.graph(
         selected_results,
         sim_mods
     )

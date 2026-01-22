@@ -1,9 +1,15 @@
 import matplotlib.pyplot as plt
 from pprint import pprint
 
+# TODO: Make all lines go flat to the end of the graph
+# TODO: Draw order matters? Higher scoring on top?
 class SimResultsGrapher:
-    @staticmethod 
-    def graph(result_list, mod_map):
+    lines_clicked = None
+
+    def __init__(self):
+        self.lines_clicked = {}
+
+    def graph(self, result_list, mod_map):
         fig, ax = plt.subplots()
 
         # Create lines
@@ -19,23 +25,41 @@ class SimResultsGrapher:
         ax.set_ylabel("Total Procs")
         ax.set_title("Status Procs Over Time")
 
-        # Events
+        # Create Events
         def on_pick(event):
             line = event.artist
-            for l, result in lines:
-                if l == line:
-                    SimResultsGrapher.on_selected(l, result, mod_map)
-                    break
+            if line not in self.lines_clicked:
+                for l, result in lines:
+                    if l == line:
+                        self.lines_clicked[line] = (l, result, mod_map)
+                        break
 
-        # Apply and draw
+        def on_click_release(event):
+            count = len(self.lines_clicked)
+            if count < 1:  
+                self.lines_clicked.clear()
+            elif count == 1:
+                (line, result, mod_map) = next(iter(self.lines_clicked.values()))
+                self.lines_clicked.clear()
+                SimResultsGrapher.on_selected(line, result, mod_map)
+                return
+            else:
+                self.lines_clicked.clear()
+                print(f"Multiple lines clicked ({count}). Please only click one")
+
+        # Apply Events
         fig.canvas.mpl_connect('pick_event', on_pick)
+        fig.canvas.mpl_connect("button_release_event", on_click_release)
+        
+        # Draw
         plt.show()
+        print(f"Graph drew with {len(lines)} lines.")
 
     @staticmethod
     def on_selected(line, result, mod_map):
         # Collect common mods
         common_mods, dynamic_sets = SimResultsGrapher.split_common_mods(result["Mod Sets"])
-        
+
         print(f"\n\nClicked on: {line}")
         print("Common:")
         for mod_id in common_mods:
