@@ -1,14 +1,18 @@
 from weapon_simulator import WeaponSimulator
 from sim_results_scorer import SimResultsScorer
+from sim_results_grapher import SimResultsGrapher
 from pprint import pprint
 import json
 import heapq
 
-TOP_SIMULATION_COUNT = 20
+MAX_RESULTS = 50
+
+# TODO: Show mod names on graph (NO! Too many. Use on click and tkinter?)
+# TODO: Make all lines go flat to the end of the graph
 
 def main():
     # Do simulations ---------------------------------
-    sim_results = WeaponSimulator(
+    sim_results, sim_mods = WeaponSimulator(
         weapon_name="Kompressa Prime",
         max_burst_seconds=12,
         progress_display_mod=1000,
@@ -17,28 +21,19 @@ def main():
     pprint(len(sim_results))
 
     # Score simulations ---------------------------------
-    score_items = [
-        {
-            "name": "Average/Sec",
-            "function": SimResultsScorer.score_average_per_sec,
-            "heap": []
-        },
-        {
-            "name": "Total",
-            "function": SimResultsScorer.score_total,
-            "heap": []
-        },
-    ]
-    SimResultsScorer.scoreResults(
-        score_items=score_items,
+    score_items = SimResultsScorer.scoreResults(
         sim_results=sim_results,
-        result_count=TOP_SIMULATION_COUNT
+        max_results=MAX_RESULTS
     )
 
-    # Print scores (TEMP)
-    for score_item in score_items:
-        for score, result_id in heapq.nlargest(len(score_item["heap"]), score_item["heap"]):
-            pprint(f"{result_id} {score_item["name"]} {score}")
+    selected_ids = [result_id for item in score_items for _, result_id in item["heap"]]
+    selected_results = [sim_results[result_id] for result_id in selected_ids]
+
+    # Graph Simulations --------------------------------
+    SimResultsGrapher.graph(
+        selected_results,
+        sim_mods
+    )
 
 
 if __name__ == "__main__":

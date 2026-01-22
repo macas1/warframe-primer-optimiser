@@ -50,7 +50,14 @@ class WeaponSimulator:
         weapon = self.get_weapon(raw_weapon_data, self.weapon_name)
         mod_data, mod_data_exilus = self.get_relevant_mods(raw_mod_data, weapon)
         sim_results = self.run_all_simulations(weapon, mod_data, mod_data_exilus)
-        return sim_results
+
+        # Create uniqueId mod dict
+        mods_by_uid = {
+            mod["uniqueName"]: {k: v for k, v in mod.items() if k != "uniqueName"}
+            for mod in mod_data
+        }
+
+        return sim_results, mods_by_uid
         
     def run_all_simulations(self, weapon, mod_data, mod_data_exilus):
         exilus_options = [None] + mod_data_exilus
@@ -245,7 +252,7 @@ class WeaponSimulator:
         for mod in mods:
             # Ignore mods
             if not self.is_player_facing_mod(mod): continue
-            if not "compatName" in mod or weapon["type"] != mod["compatName"]: continue
+            if not "compatName" in mod or weapon["type"] != mod["compatName"]: continue #TODO: Does this strip any important mods? Try with grimoire
             if any(mod["name"].lower().startswith(variant.lower()) for variant in VARIANTS_TO_STRIP): continue
             if any(variant.lower() in mod["wikiaUrl"].lower() for variant in VARIANTS_TO_STRIP): continue
 
