@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-# TODO: Draw order matters? Higher scoring on top?
+
 class SimResultsGrapher:
     lines_clicked = None
 
     def __init__(self):
         self.lines_clicked = {}
 
-    def graph(self, result_list, mod_map):
+    def graph(self, result_list, mod_map, max_sim_time):
         fig, ax = plt.subplots()
 
         # Create lines
@@ -20,6 +20,7 @@ class SimResultsGrapher:
             lines.append((line, result))  # store line and data
 
         # Create metadata
+        ax.set_xlim(left=0, right=max_sim_time)
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Total Procs")
         ax.set_title("Status Procs Over Time")
@@ -85,19 +86,3 @@ class SimResultsGrapher:
         ]
 
         return list(common_mods), stripped_mod_sets
-    
-    @staticmethod
-    def extend_results(results, max_time):
-        for result in results:
-            data = result["Results"]
-            final_result = data[-1]
-            if final_result["time"] > max_time:
-                raise ValueError("Final result exceeds max time")
-            if final_result["time"] < max_time:
-                result["Results"].append(
-                    {
-                        "action": "nothing",
-                        "time": max_time,
-                        "procs": final_result["procs"]
-                    }
-                )

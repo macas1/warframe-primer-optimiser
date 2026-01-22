@@ -2,16 +2,16 @@ from weapon_simulator import WeaponSimulator
 from sim_results_scorer import SimResultsScorer
 from sim_results_grapher import SimResultsGrapher
 from pprint import pprint
-import json
-import heapq
 
-# TODO: Display scores somewhere (Will have to be stored in result items)
+# TODO: Display scores on line click (Will have to be stored in result items)
+# TODO: Draw order matters? Higher scoring on top?
+# TODO: GUI?
 
 MAX_RESULTS = 50
 MAX_BURST_SECONDS = 12
 
 def main():
-    # Do simulations ---------------------------------
+    # Do simulations --------------------------------------
     sim_results, sim_mods = WeaponSimulator(
         weapon_name="Kompressa Prime",
         max_burst_seconds=MAX_BURST_SECONDS,
@@ -20,7 +20,7 @@ def main():
     ).run()
     pprint(len(sim_results))
 
-    # Score simulations ---------------------------------
+    # Score simulations -----------------------------------
     score_items = SimResultsScorer.scoreResults(
         sim_results=sim_results,
         max_results=MAX_RESULTS
@@ -29,12 +29,17 @@ def main():
     selected_ids = {result_id for item in score_items for _, result_id in item["heap"]}
     selected_results = [sim_results[result_id] for result_id in selected_ids]
 
-    # Graph Simulations --------------------------------
-    SimResultsGrapher.extend_results(selected_results, MAX_BURST_SECONDS)
+    # Ground selected results to graph nicer --------------
+    for result in selected_results:
+        if result["Results"][0]["time"] > 0:
+            result["Results"].insert(0, {"action": "Idle", "time": 0, "procs": 0})
+
+    # Graph Simulations -----------------------------------
     grapher = SimResultsGrapher()
     grapher.graph(
         selected_results,
-        sim_mods
+        sim_mods,
+        MAX_BURST_SECONDS
     )
 
 

@@ -194,21 +194,20 @@ class WeaponSimulator:
         reloaded = False
         sim_mag = weapon_values()["Magazine Capacity"]
         while sim_time <= self.max_burst_seconds:
-            firing_time = 1 / weapon_values()["Fire Rate"]
-            result = {"time": sim_time}
+            firing_time = 1 / weapon_values()["Fire Rate"] # Calc each time in case of conditional changes
             if sim_mag > 0:
-                result["action"] = "Fire"
                 current_procs += weapon_values()["Multishot"] * weapon_values()["Status Chance"]
                 sim_time += firing_time
                 sim_mag -= 1
+                sim_results.append({"action": "Fire", "time": sim_time, "procs": current_procs})
             else:
                 reloaded = True
-                result["action"] = "Reload"
-                sim_time += weapon_values()["Reload Speed"]
                 sim_mag = weapon_values()["Magazine Capacity"]
+                sim_results.append({"action": "Reload Start", "time": sim_time, "procs": current_procs})  # flat point at reload start
+                sim_time += weapon_values()["Reload Speed"]
+                sim_results.append({"action": "Reload End", "time": sim_time, "procs": current_procs})  # flat point at reload end
         
-            result["procs"] = current_procs
-            sim_results.append(result)
+            
         return sim_results
 
     def sum_relevant_mod_stats(self, mods, reloaded):
