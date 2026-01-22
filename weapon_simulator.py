@@ -11,7 +11,6 @@ RELEVANT_WEAPON_STATS = ["fireRate", "multishot", "status_chance", "reloadTime",
 RELEVANT_CONDITIONS = ["On Reload", "On Ability Cast"]
 VARIANTS_TO_STRIP = ["GALVANIZED", "AMALGAM", "FLAWED"]
 WEAPON_ATTACK = 0
-WEAPON_MOD_SLOTS = 8
 WEAPON_EXILUS_SLOTS = 1
 CACHE_LIFESPAN = 60*60*24*1  # 1 days
 
@@ -20,6 +19,7 @@ class WeaponSimulator:
     weapon_name = None
     max_burst_seconds = None
     minimum_simulated_mods = None
+    maximum_simulated_mods = None
     progress_display_mod = None
     locked_mod_names = None
     raw_mod_data = None
@@ -29,6 +29,7 @@ class WeaponSimulator:
             weapon_name, 
             max_burst_seconds = 12,
             minimum_simulated_mods = 8,
+            maximum_simulated_mods = 8,
             progress_display_mod = 1,
             locked_mod_names = []
 
@@ -36,6 +37,7 @@ class WeaponSimulator:
         self.weapon_name = weapon_name
         self.max_burst_seconds = max_burst_seconds
         self.minimum_simulated_mods = minimum_simulated_mods
+        self.maximum_simulated_mods = maximum_simulated_mods
         self.progress_display_mod = progress_display_mod
         self.locked_mod_names = {name.lower() for name in locked_mod_names} 
 
@@ -66,10 +68,10 @@ class WeaponSimulator:
         locked_mods, free_mods = self.split_locked_mods(mod_data)
         locked_count = len(locked_mods)
 
-        if locked_count > 8:
+        if locked_count > self.maximum_simulated_mods:
             raise ValueError("More locked mods than available slots")
 
-        remaining_slots = 8 - locked_count
+        remaining_slots = self.maximum_simulated_mods - locked_count
 
         # Generate all regular mod combinations for the chosen range
         min_mods = max(0, min(self.minimum_simulated_mods, remaining_slots))
@@ -250,7 +252,7 @@ class WeaponSimulator:
         results_utility = []
         for mod in mods:
             # Ignore mods
-            if not self.is_player_facing_mod(mod): continue
+            if not self.is_player_facing(mod): continue
             if not "compatName" in mod or weapon["type"] != mod["compatName"]: continue #TODO: Does this strip any important mods? Try with grimoire
             if any(mod["name"].lower().startswith(variant.lower()) for variant in VARIANTS_TO_STRIP): continue
             if any(variant.lower() in mod["wikiaUrl"].lower() for variant in VARIANTS_TO_STRIP): continue
@@ -335,9 +337,12 @@ class WeaponSimulator:
         return results
 
     def get_weapon(self, data, name):
-        weapons = [item for item in data if item["name"] == name]
+        weapons = [item for item in data if item["name"] == name and self.is_player_facing(item)]
         if len(weapons) != 1:
             raise ValueError(f"Expected 1 weapon with name {name}, found {len(weapons)}.")
+        
+        if "magazineSize" not in weapons[0]:
+            weapons[0]["magazineSize"] = float('inf')
         return weapons[0]
 
     def key_missing_or_falsy(self, obj, key):
@@ -345,9 +350,9 @@ class WeaponSimulator:
         if not obj[key]: return True
         return False
 
-    def is_player_facing_mod(self, mod):
+    def is_player_facing(self, item):
         required_keys = ["releaseDate", "wikiAvailable", "wikiaUrl"]
-        return all(mod.get(k) for k in required_keys)
+        return all(item.get(k) for k in required_keys)
 
     def setup_cache(self):
         requests_cache.install_cache(

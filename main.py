@@ -6,17 +6,17 @@ from pprint import pprint
 # TODO: Draw order matters? Higher scoring on top?
 # TODO: GUI?
 
-MAX_RESULTS = 50
+MAX_RESULTS = 100
 MAX_BURST_SECONDS = 12
 
 def main():
     # Do simulations --------------------------------------
     sim_results, sim_mods = WeaponSimulator(
-        weapon_name="Kompressa Prime",
+        weapon_name="Grimoire",
         max_burst_seconds=MAX_BURST_SECONDS,
-        progress_display_mod=1000,
+        progress_display_mod=10000,
         minimum_simulated_mods=8,
-        locked_mod_names=["Anemic Agility", "Barrel Diffusion", "Lethal Torrent"],
+        locked_mod_names=[]
     ).run()
     pprint(len(sim_results))
 

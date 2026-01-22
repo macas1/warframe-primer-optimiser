@@ -12,6 +12,14 @@ class SimResultsScorer:
                 "name": "Total",
                 "function": SimResultsScorer.score_total,
             },
+            {
+                "name": "First Mag",
+                "function": SimResultsScorer.score_first_mag,
+            },
+            {
+                "name": "First Bullet",
+                "function": SimResultsScorer.score_first_bullet,
+            }
         ]
 
         for score_item in score_items:
@@ -38,3 +46,17 @@ class SimResultsScorer:
     def score_total(sim_result):
         final_entry = sim_result["Results"][-1]
         return final_entry["procs"]
+
+    @staticmethod
+    def score_first_mag(sim_result):
+        for result in sim_result["Results"]:
+            if result["action"] == "Reload Start":
+                return result["procs"]
+        return SimResultsScorer.score_total(sim_result)
+    
+    @staticmethod
+    def score_first_bullet(sim_result): # TODO: Change to average/sec first mag. It's more readable when collected with the other data
+        for result in sim_result["Results"]:
+            if result["action"] == "Fire":
+                return result["procs"]
+        return 0

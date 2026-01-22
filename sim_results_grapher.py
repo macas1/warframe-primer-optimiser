@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from collections import Counter
 from pprint import pprint
 
 
@@ -68,6 +69,11 @@ class SimResultsGrapher:
         print("Common:")
         for mod_id in common_mods:
             print(f"    {mod_map[mod_id]["name"]}")
+
+        print("Other (All)")
+        mod_counts = Counter(mod_id for mod_set in dynamic_sets for mod_id in mod_set)
+        for mod_id, count in mod_counts.items():
+            print(f"    {mod_map[mod_id]['name']} (x{count})")
 
         for i, mod_set in enumerate(dynamic_sets):
             print(f"Other {i}:")
