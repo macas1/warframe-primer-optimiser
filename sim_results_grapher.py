@@ -61,6 +61,10 @@ class SimResultsGrapher:
         common_mods, dynamic_sets = SimResultsGrapher.split_common_mods(result["Mod Sets"])
 
         print(f"\n\nClicked on: {line}")
+        print("Scores:")
+        for score in result["scores"]:
+            print(f"    {score[0]}: {score[1]}")
+
         print("Common:")
         for mod_id in common_mods:
             print(f"    {mod_map[mod_id]["name"]}")

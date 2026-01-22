@@ -19,8 +19,10 @@ class SimResultsScorer:
         
         result_count = int(max_results/len(score_items))
         for result_id, results in sim_results.items():
+            results["scores"] = []
             for score_item in score_items:
                 score = score_item["function"](results)
+                results["scores"].append((score_item["name"], score))
                 if len(score_item["heap"]) < result_count:
                     heapq.heappush(score_item["heap"], (score, result_id))
                 elif score > score_item["heap"][0][0]:

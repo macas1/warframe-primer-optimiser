@@ -3,7 +3,6 @@ from sim_results_scorer import SimResultsScorer
 from sim_results_grapher import SimResultsGrapher
 from pprint import pprint
 
-# TODO: Display scores on line click (Will have to be stored in result items)
 # TODO: Draw order matters? Higher scoring on top?
 # TODO: GUI?
 
@@ -16,6 +15,7 @@ def main():
         weapon_name="Kompressa Prime",
         max_burst_seconds=MAX_BURST_SECONDS,
         progress_display_mod=1000,
+        minimum_simulated_mods=8,
         locked_mod_names=["Anemic Agility", "Barrel Diffusion", "Lethal Torrent"],
     ).run()
     pprint(len(sim_results))
