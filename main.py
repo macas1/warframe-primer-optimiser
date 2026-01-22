@@ -12,11 +12,11 @@ MAX_BURST_SECONDS = 12
 def main():
     # Do simulations --------------------------------------
     sim_results, sim_mods = WeaponSimulator(
-        weapon_name="Grimoire",
+        weapon_name="Kompressa Prime",
         max_burst_seconds=MAX_BURST_SECONDS,
-        progress_display_mod=10000,
+        progress_display_mod=1000,
         minimum_simulated_mods=8,
-        locked_mod_names=[]
+        locked_mod_names=["Lethal Torrent", "Anemic Agility", "Barrel Diffusion", "Sure Shot"]
     ).run()
     pprint(len(sim_results))
 
