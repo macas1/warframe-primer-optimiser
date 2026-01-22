@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-# TODO: Make all lines go flat to the end of the graph
 # TODO: Draw order matters? Higher scoring on top?
 class SimResultsGrapher:
     lines_clicked = None
@@ -86,3 +85,19 @@ class SimResultsGrapher:
         ]
 
         return list(common_mods), stripped_mod_sets
+    
+    @staticmethod
+    def extend_results(results, max_time):
+        for result in results:
+            data = result["Results"]
+            final_result = data[-1]
+            if final_result["time"] > max_time:
+                raise ValueError("Final result exceeds max time")
+            if final_result["time"] < max_time:
+                result["Results"].append(
+                    {
+                        "action": "nothing",
+                        "time": max_time,
+                        "procs": final_result["procs"]
+                    }
+                )

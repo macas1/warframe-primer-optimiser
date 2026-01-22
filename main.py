@@ -5,13 +5,16 @@ from pprint import pprint
 import json
 import heapq
 
+# TODO: Display scores somewhere (Will have to be stored in result items)
+
 MAX_RESULTS = 50
+MAX_BURST_SECONDS = 12
 
 def main():
     # Do simulations ---------------------------------
     sim_results, sim_mods = WeaponSimulator(
         weapon_name="Kompressa Prime",
-        max_burst_seconds=12,
+        max_burst_seconds=MAX_BURST_SECONDS,
         progress_display_mod=1000,
         locked_mod_names=["Anemic Agility", "Barrel Diffusion", "Lethal Torrent"],
     ).run()
@@ -27,6 +30,7 @@ def main():
     selected_results = [sim_results[result_id] for result_id in selected_ids]
 
     # Graph Simulations --------------------------------
+    SimResultsGrapher.extend_results(selected_results, MAX_BURST_SECONDS)
     grapher = SimResultsGrapher()
     grapher.graph(
         selected_results,
